@@ -1,12 +1,13 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { READ_SCOPE, WRITE_SCOPE, type AgentTokenPayload, type Scope } from "../auth/agentToken.js";
-import { IllegalTransitionError } from "../domain/stateMachine.js";
-import type { TicketKind, TicketPage, TicketRecord, TrendSummary } from "../domain/types.js";
+import { assertTransition, IllegalTransitionError } from "../domain/stateMachine.js";
+import type { TicketKind, TicketPage, TicketRecord, TicketStatus, TrendSummary } from "../domain/types.js";
 import { DomainError, type TechHavenClient } from "../techhaven/client.js";
 import { sha256Digest, type AuditLog } from "../audit.js";
 import { decodeId, encodeId, type HashIdScope } from "../hashid.js";
 import type { SemanticsProvider } from "../semantics/types.js";
+import type { ProposalDetail, ProposalStore } from "../proposals/store.js";
 
 export interface ToolContext {
   client: TechHavenClient;
@@ -14,6 +15,10 @@ export interface ToolContext {
   audit: AuditLog;
   /** 语义层：提供字段业务含义与指标口径（供 get_semantics 读取） */
   semantics: SemanticsProvider;
+  /** 写提案存储（staged 写模式使用；direct 模式不触碰） */
+  proposals: ProposalStore;
+  /** 写模式：direct=直接生效（P0 现状）；staged=写操作先建提案等待人工批准（TH-RFC-001 §07） */
+  writeMode: "direct" | "staged";
 }
 
 type ToolResult = { content: [{ type: "text"; text: string }]; isError?: boolean };
@@ -90,7 +95,7 @@ async function guard(
   }
 }
 
-/** P0 工具目录：5 读 + 1 写（含语义层读取 get_semantics，TH-RFC-001 §05.3）。add_ticket_comment / create_bug 属 P1。 */
+/** P0 工具目录：6 读 + 1 写（含语义层读取 get_semantics，TH-RFC-001 §05.3）。写工具在 staged 模式下走提案审批流（§07）。add_ticket_comment / create_bug 属 P1。 */
 export function registerTools(server: McpServer, ctx: ToolContext): void {
   const org = ctx.session.org;
 
@@ -185,7 +190,8 @@ export function registerTools(server: McpServer, ctx: ToolContext): void {
       title: "变更工单状态",
       description:
         "将工单变更为目标状态（须为合法迁移，非法迁移会被拒绝），必须说明原因。需要 rd:write。" +
-        "注意：P0 阶段直接生效；P1 起将改为人工审批后生效（awaiting_permission）。",
+        "direct 模式（默认）直接生效；staged 模式下变更先存为提案（pending，带过期时间），" +
+        "人工批准（npm run proposal -- approve）后由 get_proposal 应用。",
       inputSchema: {
         kind: z.enum(KINDS).describe(KIND_DESC),
         id: z.string().describe("工单 hashId"),
@@ -196,6 +202,10 @@ export function registerTools(server: McpServer, ctx: ToolContext): void {
     },
     async (args) =>
       guard(ctx, "update_ticket_status", WRITE_SCOPE, args, async () => {
+        if (ctx.writeMode === "staged") {
+          return stageTicketStatusChange(ctx, org, args);
+        }
+        // direct 模式：行为与 P0 保持完全一致
         const rec = await ctx.client.updateTicketStatus(
           org,
           args.kind,
@@ -231,6 +241,132 @@ export function registerTools(server: McpServer, ctx: ToolContext): void {
           : { object };
       }),
   );
+
+  // 放最后：它是 staged 写模式的配套查询（读工具），与 update_ticket_status 的 staged 分支配对
+  server.registerTool(
+    "get_proposal",
+    {
+      title: "查询提案状态",
+      description:
+        "staged 写模式下用它跟踪写提案：pending 表示变更未生效、等待人工批准；" +
+        "人工批准（npm run proposal -- approve <id>）后再次调用本工具，server 会重新校验状态机" +
+        "并应用变更，返回最终结果（status=applied + 更新后的工单）。需要 rd:read。",
+      inputSchema: {
+        id: z.string().describe("提案 ID（update_ticket_status 在 staged 模式返回）"),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (args) =>
+      guard(ctx, "get_proposal", READ_SCOPE, args, async () => {
+        const state = ctx.proposals.getState(args.id);
+        // 组织隔离：其他组织 agent 的提案一律按不存在处理（不泄露其存在性）
+        if (state.status === "unknown" || state.detail === null || state.detail.orgId !== org) {
+          throw new DomainError("NOT_FOUND", `提案不存在：${args.id}（提案 ID 由 update_ticket_status 在 staged 模式返回）`);
+        }
+        switch (state.status) {
+          case "pending":
+            return {
+              id: args.id,
+              status: "pending",
+              to_status: state.detail.toStatus,
+              expires_at: state.detail.expiresAt,
+              note: "等待人工批准（npm run proposal -- approve）；批准后再次调用本工具以应用变更",
+            };
+          case "rejected":
+            return { id: args.id, status: "rejected", note: "提案已被拒绝（或批准后应用失败），变更未生效" };
+          case "expired":
+            return {
+              id: args.id,
+              status: "expired",
+              note: "提案已过未决时限（视为拒绝，安全侧倾斜），变更未生效；如仍需变更请重新发起",
+            };
+          case "applied":
+            return { id: args.id, status: "applied" }; // 幂等：不重复应用
+          case "approved":
+            return applyApprovedProposal(ctx, org, state.detail);
+          default:
+            throw new Error("不可达：未知提案状态");
+        }
+      }),
+  );
+}
+
+/**
+ * staged 写模式：update_ticket_status 不直接生效，而是创建提案（pending，带过期时间）。
+ * 快速失败：工单不存在或迁移非法时直接报错，不产生提案——审批负担只留给合法请求。
+ * 审计照常由 guard 记录（decision allow）。
+ */
+async function stageTicketStatusChange(
+  ctx: ToolContext,
+  org: number,
+  args: { kind: TicketKind; id: string; to_status: string; reason: string },
+): Promise<unknown> {
+  const subjectId = requireNumericId(args.id, args.kind);
+  const existing = await ctx.client.getTicket(org, args.kind, subjectId);
+  if (!existing) {
+    throw new DomainError("NOT_FOUND", `未找到 ${args.kind} 工单（${args.id}，组织 ${org}）`);
+  }
+  // 先过状态机再建提案：非法迁移在此报错，提案根本不会创建
+  assertTransition(args.kind, existing.status, args.to_status as TicketStatus);
+
+  const detail = ctx.proposals.create({
+    sessionId: ctx.session.sid,
+    orgId: org,
+    tool: "update_ticket_status",
+    kind: args.kind,
+    subjectHashId: args.id,
+    subjectId,
+    fromStatus: existing.status,
+    toStatus: args.to_status,
+    reason: args.reason,
+  });
+
+  return {
+    proposal: {
+      id: detail.id,
+      status: "pending",
+      from_status: detail.fromStatus,
+      to_status: detail.toStatus,
+      expires_at: detail.expiresAt,
+    },
+    note: "staged 模式：变更未生效，等待人工批准；批准后调用 get_proposal 查看",
+  };
+}
+
+/**
+ * 应用已批准的提案：审批窗口内工单可能已被人工改动，因此先重读工单当前状态、
+ * 重新过状态机，再执行变更。任何应用失败都补记 rejected 事件，提案不悬空在 approved 态。
+ */
+async function applyApprovedProposal(
+  ctx: ToolContext,
+  org: number,
+  detail: ProposalDetail,
+): Promise<unknown> {
+  const current = await ctx.client.getTicket(org, detail.kind, detail.subjectId);
+  if (!current) {
+    ctx.proposals.appendEvent("rejected", detail.id, "system", "应用失败：工单不存在");
+    return { id: detail.id, status: "rejected", note: "审批通过但应用失败：工单不存在，已按拒绝处理" };
+  }
+  try {
+    assertTransition(detail.kind, current.status, detail.toStatus as TicketStatus);
+  } catch (e) {
+    const note = e instanceof Error ? e.message : "目标状态已不再是合法迁移";
+    ctx.proposals.appendEvent("rejected", detail.id, "system", note);
+    return {
+      id: detail.id,
+      status: "rejected",
+      note: `审批通过但无法应用：工单当前状态已是 ${current.status}（提案目标 ${detail.toStatus} 不再是合法迁移），已按拒绝处理`,
+    };
+  }
+  const rec = await ctx.client.updateTicketStatus(
+    org,
+    detail.kind,
+    detail.subjectId,
+    detail.toStatus,
+    detail.reason,
+  );
+  ctx.proposals.appendEvent("applied", detail.id, "system");
+  return { id: detail.id, status: "applied", updated: ticketDetail(rec) };
 }
 
 function requireNumericId(hash: string, kind: TicketKind): number {

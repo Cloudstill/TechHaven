@@ -36,7 +36,7 @@
 |---|---|
 | JSONL 审计（`audit.ts`） | **已实现双写**：`TECHHAVEN_DB_URL` 非空时同步写 `agent_tool_calls`（JSONL 永远保留为降级通道） |
 | CLI 手动签发 token | 台账落 `agent_tokens`（存指纹不存密钥）；签发服务化仍归 P1 Gateway |
-| 状态机直写 | 写工具改走 `agent_write_proposals`（P1），P0 先双写观察 |
+| 状态机直写 | **staged 写模式已实现**（`TECHHAVEN_WRITE_MODE=staged`）：写操作走提案暂存 → 人工 `npm run proposal -- approve` → 应用；JSONL 为 PoC 存储，DB 就绪后迁移 `agent_write_proposals` 表 |
 | 工具硬编码 | 注册进 `tool_catalog` + `org_tool_policy` 治理 |
 | agent 只能读物理字段含义 | `get_semantics` 工具（已实现，mock 语义层）：agent 从「猜 schema」变「查口径」；DB 就绪后切到 `semantic_*` 表 |
 

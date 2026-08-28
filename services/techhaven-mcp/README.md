@@ -2,7 +2,7 @@
 
 TechHaven 研发平台的 **MCP Server（P0 PoC）**。把工单/需求/缺陷的领域操作暴露为 MCP 工具，供 dsh 等 agent 引擎挂载——这是 TH-RFC-001 集成设计里「**工具流**」（agent → TechHaven）的第一块实体。
 
-> 设计文档：`../techhaven-dsh-integration.html`（TH-RFC-001）。本仓库只做 P0：4 读 + 1 写工具、离线 mock 演示、手动签发 agent token。Gateway、人审批、云端沙箱均属 P1/P2。
+> 设计文档：`../techhaven-dsh-integration.html`（TH-RFC-001）。本仓库只做 P0：6 读 + 1 写工具、离线 mock 演示、手动签发 agent token；写操作支持 `staged` 审批流（提案 → 人批 → 应用）。Gateway、云端沙箱属 P1/P2。
 
 ## 快速开始
 
@@ -18,7 +18,7 @@ TECHHAVEN_TOKEN_SECRET=dev-only-secret-change-me \
 TECHHAVEN_TOKEN_SECRET=dev-only-secret-change-me npm run smoke
 ```
 
-smoke 通过即代表 P0 工具流闭环：握手 → 列工具 → 读工单 → 合法状态迁移成功 → **非法迁移被状态机拒绝** → 伪造 hashId 得到友好错误。
+smoke 通过即代表 P0 工具流闭环：握手 → 列工具 → 读工单 → 合法状态迁移成功 → **非法迁移被状态机拒绝** → 伪造 hashId 得到友好错误。随后自动跑 staged 写模式冒烟：提案暂存 → 人工批准 → `get_proposal` 应用 → 幂等 → 非法迁移建提案前快速失败。
 
 ## 运行模式
 
@@ -47,9 +47,9 @@ dsh 侧通过 mcp-client 把本服务挂为外部工具源（stdio 方式，toke
 }
 ```
 
-挂载后 agent 即可原生调用 `get_ticket` / `list_my_tickets` / `search_requirements` / `get_trend_summary` / `update_ticket_status`。
+挂载后 agent 即可原生调用 `get_ticket` / `list_my_tickets` / `search_requirements` / `get_trend_summary` / `get_semantics` / `get_proposal` / `update_ticket_status`。
 
-## 工具目录（P0）
+## 工具目录（P0，7 工具 = 6 读 + 1 写）
 
 | 工具 | scope | 说明 |
 |---|---|---|
@@ -57,9 +57,42 @@ dsh 侧通过 mcp-client 把本服务挂为外部工具源（stdio 方式，toke
 | `list_my_tickets` | rd:read | 列本组织工单，可按类型/状态过滤，单页上限 50 |
 | `search_requirements` | rd:read | 按关键词/优先级搜需求 |
 | `get_trend_summary` | rd:read | 近 N 天趋势摘要（各类型 open/closed、窗口内新建/关闭） |
-| `update_ticket_status` | rd:write | 变更状态；**非法迁移一律拒绝**；必须附原因 |
+| `get_semantics` | rd:read | 语义层读取：字段业务含义与指标口径（查数/改数前先读口径） |
+| `get_proposal` | rd:read | 查询写提案状态；staged 模式下人工批准后再调它即触发应用并返回最终结果 |
+| `update_ticket_status` | rd:write | 变更状态；**非法迁移一律拒绝**；必须附原因；staged 模式下先建提案 |
 
-P1 再加：`add_ticket_comment`（幂等键）、`create_bug`（去重窗口），且写工具全部改走人审批。
+P1 再加：`add_ticket_comment`（幂等键）、`create_bug`（去重窗口），同样纳入 staged 审批流。
+
+## 写模式：direct / staged
+
+`TECHHAVEN_WRITE_MODE` 控制写工具（目前是 `update_ticket_status`）的生效方式：
+
+| 模式 | 行为 |
+|---|---|
+| `direct`（默认） | 变更直接生效（P0 现状，行为不变） |
+| `staged` | 变更先存为**提案**（pending，带过期时间），人工批准后才由 server 应用 |
+
+staged 流程（文字版时序）：
+
+```
+agent 调 update_ticket_status（合法迁移）
+  → server 校验 scope + 状态机，创建提案（pending，TECHHAVEN_PROPOSAL_TTL_MINUTES 内有效），
+    返回 { proposal: { id, status: "pending", to_status, expires_at } }   —— 变更未生效
+  → 人工执行 `npm run proposal -- approve <id>`（或 reject / 放任过期）
+  → agent 调 get_proposal { id }
+  → server 检测到 approved：重读工单当前状态、重新过状态机 → 应用变更，补记 applied 事件
+  → 返回 { id, status: "applied", updated: {...} }
+```
+
+要点：
+
+- **快速失败**：工单不存在或迁移非法时直接报错，不产生提案——审批负担只留给合法请求。
+- **批准后二次校验**：应用前 server 重读工单当前状态、重新过状态机；审批窗口内工单若已被人工改动且迁移不再合法，提案转 rejected 并返回说明，不会硬改。
+- **未决过期 = 默认拒绝**（安全侧倾斜）：`TECHHAVEN_PROPOSAL_TTL_MINUTES`（默认 30 分钟）内未批准即 expired。
+- **幂等**：已 applied 的提案重复查询不会重复应用。
+- 提案事件（created/approved/rejected/applied/expired，含操作者）落 `TECHHAVEN_PROPOSALS_FILE`（JSONL，append-only）；人工用 `npm run proposal -- list / approve / reject` 处理。
+
+风险与边界：该 JSONL 提案存储是 PoC 简化实现（单进程 server + 人工 CLI 偶发竞争可接受，每次读写重读折叠）；字段与 `docs/agent-db` 的 `agent_write_proposals` 表一一对应（session/org/tool/subject/change/status/expires_at），PG 迁移待 Agent Gateway 上线后进行。
 
 ## 工单状态机（须与后端对齐后冻结）
 
@@ -88,12 +121,15 @@ task:        todo → doing → done → closed                    （doing 可�
 src/
   index.ts            # MCP Server 入口（stdio）
   cli.ts              # agent token 签发/校验 CLI
-  smoke.ts            # 端到端冒烟测试
+  proposalCli.ts      # 写提案人工审批 CLI（list / approve / reject）
+  smoke.ts            # 端到端冒烟测试（direct 模式）
+  smoke.staged.ts     # 端到端冒烟测试（staged 写模式：提案 → 人批 → 应用）
   config.ts           # 环境变量解析
   audit.ts            # JSONL 审计
   hashid.ts           # TechHaven hashId 镜像（同盐同长度）
   auth/agentToken.ts  # HMAC token：单会话 + 单组织 + scope + TTL
   domain/             # 领域类型与工单状态机
+  proposals/store.ts  # 写提案事件存储（staged 写模式，JSONL append-only）
   techhaven/          # 数据访问：mock / http 两实现
-  tools/index.ts      # P0 工具注册（scope 守卫 + 审计）
+  tools/index.ts      # P0 工具注册（scope 守卫 + 审计 + staged 提案分支）
 ```

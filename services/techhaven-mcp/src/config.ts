@@ -1,4 +1,11 @@
 export type BackendMode = "mock" | "http";
+/** 写模式：direct=写工具直接生效（P0 现状）；staged=写操作先建提案等待人工批准（TH-RFC-001 §07） */
+export type WriteMode = "direct" | "staged";
+
+/** 提案事件存储默认路径（proposalCli.ts 共用，避免两处默认值漂移） */
+export const DEFAULT_PROPOSALS_FILE = "./audit/proposals.jsonl";
+/** 提案未决过期默认分钟数（proposalCli.ts 共用） */
+export const DEFAULT_PROPOSAL_TTL_MINUTES = 30;
 
 export interface Config {
   agentToken: string;
@@ -11,6 +18,12 @@ export interface Config {
   dbUrl: string;
   /** agent 身份在 DB（agent_identities.name）中的名字（TECHHAVEN_AGENT_NAME） */
   agentName: string;
+  /** 写模式（TECHHAVEN_WRITE_MODE），见 WriteMode */
+  writeMode: WriteMode;
+  /** 写提案事件存储路径（TECHHAVEN_PROPOSALS_FILE，JSONL append-only；staged 模式使用） */
+  proposalsFile: string;
+  /** 提案未决过期分钟数（TECHHAVEN_PROPOSAL_TTL_MINUTES，正整数；过期 = 默认拒绝） */
+  proposalTtlMinutes: number;
 }
 
 export class ConfigError extends Error {
@@ -42,6 +55,23 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new ConfigError("http 模式需要 TECHHAVEN_SERVICE_TOKEN（服务端凭据，不使用 agent token）");
   }
 
+  const writeModeRaw = (env.TECHHAVEN_WRITE_MODE ?? "direct").trim().toLowerCase();
+  if (writeModeRaw !== "direct" && writeModeRaw !== "staged") {
+    throw new ConfigError(`TECHHAVEN_WRITE_MODE 只能是 direct | staged，收到：${writeModeRaw}`);
+  }
+  const writeMode = writeModeRaw as WriteMode;
+
+  const proposalsFile = env.TECHHAVEN_PROPOSALS_FILE?.trim() || DEFAULT_PROPOSALS_FILE;
+
+  // 提案未决时限：正整数分钟；空/非数字/非正整数一律拒绝启动（宁可起不来也不带病跑审批流）
+  const ttlRaw = (env.TECHHAVEN_PROPOSAL_TTL_MINUTES ?? String(DEFAULT_PROPOSAL_TTL_MINUTES)).trim();
+  const proposalTtlMinutes = Number(ttlRaw);
+  if (!Number.isInteger(proposalTtlMinutes) || proposalTtlMinutes <= 0) {
+    throw new ConfigError(
+      `TECHHAVEN_PROPOSAL_TTL_MINUTES 必须是正整数（分钟），收到：${env.TECHHAVEN_PROPOSAL_TTL_MINUTES ?? ""}`,
+    );
+  }
+
   return {
     agentToken,
     tokenSecret,
@@ -51,5 +81,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     auditFile: env.TECHHAVEN_AUDIT_FILE?.trim() || "./audit/agent-audit.jsonl",
     dbUrl: env.TECHHAVEN_DB_URL?.trim() ?? "",
     agentName: env.TECHHAVEN_AGENT_NAME?.trim() || "techhaven-mcp-poc",
+    writeMode,
+    proposalsFile,
+    proposalTtlMinutes,
   };
 }

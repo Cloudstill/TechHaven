@@ -13,7 +13,8 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "token": "tsx src/cli.ts",
-    "smoke": "npm run build && tsx src/smoke.ts"
+    "proposal": "tsx src/proposalCli.ts",
+    "smoke": "npm run build && tsx src/smoke.ts && tsx src/smoke.staged.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.0",

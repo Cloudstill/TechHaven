@@ -6,6 +6,7 @@ import { verifyAgentToken } from "./auth/agentToken.js";
 import { MockTechHavenClient } from "./techhaven/mockClient.js";
 import { HttpTechHavenClient } from "./techhaven/httpClient.js";
 import { AuditLog } from "./audit.js";
+import { ProposalStore } from "./proposals/store.js";
 import { registerTools } from "./tools/index.js";
 import { MockSemanticsProvider } from "./semantics/mockProvider.js";
 import { log } from "./log.js";
@@ -52,12 +53,15 @@ async function main(): Promise<void> {
   // 语义层：P0 用人工策展的 mock 数据源；接入真实后端后替换为远程语义 Provider
   const semantics = new MockSemanticsProvider();
 
+  // 写提案存储（staged 写模式：提案暂存 → 人批 → 应用；direct 模式下仅构造不使用）
+  const proposals = new ProposalStore(config.proposalsFile, config.proposalTtlMinutes);
+
   const server = new McpServer({ name: "techhaven-mcp", version: SERVER_VERSION });
-  registerTools(server, { client, session, audit, semantics });
+  registerTools(server, { client, session, audit, semantics, proposals, writeMode: config.writeMode });
 
   await server.connect(new StdioServerTransport());
   log(
-    `已连接（mode=${config.backend} sid=${session.sid} org=${session.org} scopes=${session.scopes.join(",")}）`,
+    `已连接（mode=${config.backend} write=${config.writeMode} sid=${session.sid} org=${session.org} scopes=${session.scopes.join(",")}）`,
   );
 }
 
