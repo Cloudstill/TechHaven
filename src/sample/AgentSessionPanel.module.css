@@ -1,0 +1,367 @@
+/* Agent 会话面板测试样例页样式（DEV 专用）
+ * 颜色全部走全局 CSS 变量（:root / [data-theme="dark"] 已定义），不硬编码色值 */
+
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.desc {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.descMono {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+
+/* ---------- 面板容器 ---------- */
+
+.panel {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-primary);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* ---------- 顶栏：状态徽标 + sid + 重新演示 ---------- */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-primary);
+  background-color: var(--bg-secondary);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  flex: none;
+}
+
+.badgeDotPulse {
+  animation: badgePulse 1.2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+/* 语义色：queued=中性、running=主色、awaiting_permission=警示、
+ * succeeded=成功、failed/cancelled=危险 */
+.badge--neutral {
+  color: var(--text-secondary);
+  background-color: var(--bg-tertiary);
+}
+
+.badge--running {
+  color: var(--primary);
+  background-color: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.badge--warning {
+  color: var(--warning);
+  background-color: var(--warn-light);
+  border-color: var(--warning);
+}
+
+.badge--success {
+  color: var(--success);
+  background-color: var(--success-light);
+  border-color: var(--success);
+}
+
+.badge--danger {
+  color: var(--error);
+  background-color: var(--error-light);
+  border-color: var(--error);
+}
+
+.sid {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 3px 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* ---------- 事件流 ---------- */
+
+.stream {
+  max-height: 440px;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.chunkRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.chunkBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.chunkBubble {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-top-left-radius: 2px;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  line-height: 1.65;
+  max-width: 92%;
+}
+
+.chunkTime {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+}
+
+.toolCard {
+  border: 1px solid var(--border-primary);
+  border-left: 3px solid var(--info);
+  border-radius: 8px;
+  background-color: var(--card-bg);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.toolCardOk {
+  border-left-color: var(--success);
+  background-color: var(--success-light);
+}
+
+.toolCardFail {
+  border-left-color: var(--error);
+  background-color: var(--error-light);
+}
+
+.toolHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.toolName {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.toolDigest {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background-color: var(--bg-tertiary);
+  border-radius: 6px;
+  padding: 4px 8px;
+  overflow-wrap: anywhere;
+}
+
+.toolSummary {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.toolTime {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  margin-left: auto;
+}
+
+.toolIconOk {
+  color: var(--success);
+}
+
+.toolIconFail {
+  color: var(--error);
+}
+
+/* ---------- 权限审批卡 ---------- */
+
+.permissionCard {
+  border: 1px solid var(--warning);
+  background-color: var(--warn-light);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.permTitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.permReason {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.permActions {
+  display: flex;
+  gap: 8px;
+}
+
+.permDecision {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.permDecisionOk {
+  color: var(--success);
+}
+
+.permDecisionNo {
+  color: var(--error);
+}
+
+/* ---------- 状态迁移行 ---------- */
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.statusLine {
+  flex: 1;
+  height: 1px;
+  background-color: var(--border-primary);
+}
+
+.statusName {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.statusDetail {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- error 事件行 ---------- */
+
+.errorRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--error);
+}
+
+/* ---------- 流式输出中的 loading 行 / 初始骨架 ---------- */
+
+.streamLoadingRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+}
+
+.streamSkeleton {
+  padding: 8px 0;
+}
+
+/* ---------- 底部说明 ---------- */
+
+.footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-primary);
+  background-color: var(--bg-secondary);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.footerMono {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
