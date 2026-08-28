@@ -1,0 +1,30 @@
+{
+  "name": "techhaven-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TechHaven 研发平台 MCP Server（P0 PoC）— 将工单/需求/缺陷领域操作暴露为 MCP 工具，供 dsh 等引擎挂载",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "token": "tsx src/cli.ts",
+    "smoke": "npm run build && tsx src/smoke.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.0",
+    "hashids": "^2.3.0",
+    "pg": "^8.13.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
