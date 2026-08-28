@@ -1,0 +1,23 @@
+{
+  "name": "techhaven-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TechHaven Agent Gateway（P1 骨架，TH-RFC-001 §05.1）— 引擎生命周期 / 会话管理 / 事件桥（SSE）/ 权限中继 / 基础配额",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "smoke": "npm run build && tsx src/smoke.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
