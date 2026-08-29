@@ -23,6 +23,16 @@ TechHaven 是一个集研发协作功能于一体的博客平台前端。除了�
 
 > 项目还封装了完整的自定义 UI 组件库（`src/components/`），业务开发时应优先复用，详见 `AGENTS.md`。
 
+## Agent 集成（TH-RFC-001）
+
+平台在「博客 × 研发」之上引入了 Agent 能力：外壳归 TechHaven、引擎归 dsh、协议（SDK JSON-RPC / MCP）是边界。设计文档与实施现状：
+
+- 设计：`docs/TH-RFC-001-agent-engine.md`（六条 ADR、架构图、路线图 P0–P3）
+- 数据层：`docs/agent-db/schema.sql`（agent 身份/日志/提案/语义/记忆）+ `docs/agent-db/seed-semantics.sql`（语义层种子数据）
+- `services/techhaven-mcp/`——MCP Server（工具流）：7 个工具（6 读 1 写）、agent token、staged 写提案审批流、审计 JSONL+PG 双写、语义层 mock/DB 双 Provider；含真实 dsh 挂载手册（`dsh/ATTACH.md`），`npm run smoke` 两套冒烟（9+11 项）
+- `services/techhaven-gateway/`——Agent Gateway（驱动流）：引擎生命周期、HTTP API + SSE 事件桥、权限中继、配额/看门狗/TTL；事件 JSONL→PG 装载器（`npm run load`）；`npm run smoke` 22 项
+- 前端：`/test/agent-session-panel`（DEV，`src/sample/AgentSessionPanel.tsx`）——会话面板样例页，走 AGENTS.md 组件流程，**待浏览器确认后集成业务页**
+
 ## 开发环境要求
 
 - Node.js（建议使用较新的 LTS）

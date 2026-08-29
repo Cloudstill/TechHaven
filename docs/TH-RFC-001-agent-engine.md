@@ -1,6 +1,8 @@
 # TH-RFC-001 · TechHaven × DeepSeek Harness 集成架构设计
 
-> **状态** 草案 DRAFT · v0.1 ｜ **日期** 2026-08-29 ｜ **起草** TechHaven 工程组 ｜ **关联** AGENTS.md · dsh v0.1.2-alpha.1
+> **状态** 已采纳 · 实施中（P0 完成、P1 完成、P2 部分完成）｜ **日期** 2026-08-29 ｜ **起草** TechHaven 工程组 ｜ **关联** AGENTS.md · dsh v0.1.2-alpha.1
+>
+> **进度快照（2026-08-29）**：P0 全部完成（MCP Server 7 工具 + dsh 挂载手册）；P1 完成（Agent Gateway + staged 写提案审批流 + 前端样例页 `/test/agent-session-panel` 待浏览器确认）；P2 部分完成（语义层/提案/事件落 PG、分级审批、装载器；容器沙箱、正式配额与成本看板待办）。实施代码见 `services/techhaven-mcp`、`services/techhaven-gateway`，数据层见 `docs/agent-db/`。
 
 ## 摘要
 
