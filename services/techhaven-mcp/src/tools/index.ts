@@ -19,6 +19,9 @@ export interface ToolContext {
   proposals: ProposalStore;
   /** 写模式：direct=直接生效（P0 现状）；staged=写操作先建提案等待人工批准（TH-RFC-001 §07） */
   writeMode: "direct" | "staged";
+  /** 分级审批清单（TECHHAVEN_WRITE_STAGED_TOOLS）：staged 模式下仅列出的写工具走提案；
+   *  未列入的写工具即使 staged 模式也直写（只读工具一律免审） */
+  stagedTools: string[];
 }
 
 type ToolResult = { content: [{ type: "text"; text: string }]; isError?: boolean };
@@ -190,8 +193,9 @@ export function registerTools(server: McpServer, ctx: ToolContext): void {
       title: "变更工单状态",
       description:
         "将工单变更为目标状态（须为合法迁移，非法迁移会被拒绝），必须说明原因。需要 rd:write。" +
-        "direct 模式（默认）直接生效；staged 模式下变更先存为提案（pending，带过期时间），" +
-        "人工批准（npm run proposal -- approve）后由 get_proposal 应用。",
+        "direct 模式（默认）直接生效；staged 模式且本工具列入分级审批清单时，变更先存为提案" +
+        "（pending，带过期时间），人工批准（npm run proposal -- approve）后由 get_proposal 应用；" +
+        "staged 但未列入清单则与 direct 相同直接生效。",
       inputSchema: {
         kind: z.enum(KINDS).describe(KIND_DESC),
         id: z.string().describe("工单 hashId"),
@@ -202,10 +206,12 @@ export function registerTools(server: McpServer, ctx: ToolContext): void {
     },
     async (args) =>
       guard(ctx, "update_ticket_status", WRITE_SCOPE, args, async () => {
-        if (ctx.writeMode === "staged") {
+        // 分级审批：只读免审、列入清单的写工具走提案，未列入的写工具即使 staged 模式也直写
+        // （为 P2 工具目录治理铺路：tool_catalog.org_tool_policy 就位后此清单改由 org_tool_policy 驱动）
+        if (ctx.writeMode === "staged" && ctx.stagedTools.includes("update_ticket_status")) {
           return stageTicketStatusChange(ctx, org, args);
         }
-        // direct 模式：行为与 P0 保持完全一致
+        // direct 模式（或 staged 但本工具未列入审批清单）：行为与 P0 保持完全一致
         const rec = await ctx.client.updateTicketStatus(
           org,
           args.kind,

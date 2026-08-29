@@ -67,6 +67,30 @@ interface CreateSessionInput {
   prompt: string;
 }
 
+/**
+ * kind:"session" patch 行的 patch 载荷（装载器 scripts/load-events.ts 据此补 agent_sessions
+ * 的归属与状态列）。归属字段来自 create 输入；JSON.stringify 会省略取值为 undefined 的键，
+ * 可选字段缺省即不出现在行中。prompt 刻意不入行：agent_sessions 无 prompt 列，原文不进库。
+ */
+interface SessionPatchJson {
+  status: SessionStatus;
+  orgId?: number;
+  subjectType?: string;
+  subjectId?: string;
+  note?: string;
+}
+
+/** patch 行载荷：create 全量（归属 + 状态），后续收尾 patch 只带变化字段（如 note） */
+function sessionPatch(record: SessionRecord, status: SessionStatus, note?: string): SessionPatchJson {
+  return {
+    status,
+    orgId: record.orgId,
+    subjectType: record.subjectType,
+    subjectId: record.subjectId,
+    note,
+  };
+}
+
 /** 注册表内部会话记录（含句柄 / 订阅者等运行态，禁止直接下发给客户端） */
 export interface SessionRecord {
   sid: string;
@@ -193,9 +217,9 @@ export class SessionRegistry {
     };
     this.records.set(sid, record);
     this.bumpActive(record.orgId, 1);
-    this.appendJsonl(
-      JSON.stringify({ kind: "session", sid, patch: { status: record.status, orgId: record.orgId, prompt: record.prompt } }),
-    );
+    // patch 行带全量归属（orgId/subjectType/subjectId 供装载器落 agent_sessions / agent_identities）；
+    // 中途状态变化不写 patch 行（kind:"event" 行已含 status），归属以首行为准
+    this.appendJsonl(JSON.stringify({ kind: "session", sid, patch: sessionPatch(record, record.status) }));
     // 看门狗自创建即生效：startSession 悬死也能被空闲超时收尾
     this.resetIdleTimer(record);
     // 后台启动：泵自管异常，绝不外抛
@@ -239,7 +263,8 @@ export class SessionRegistry {
       log(`权限应答被引擎拒绝（${sid}，requestId=${requestId}）：${errorMessage(err)}`);
       throw new GatewayError(502, "上游引擎拒绝");
     }
-    this.appendJsonl(JSON.stringify({ kind: "permission", sid, requestId, decision, ts: nowIso() }));
+    // 审计行补 orgId（装载器可按组织归档）；权限工具调用的权威台账仍在 techhaven-mcp 侧
+    this.appendJsonl(JSON.stringify({ kind: "permission", sid, orgId: record.orgId, requestId, decision, ts: nowIso() }));
   }
 
   /** 用户取消（幂等：已终态直接视为成功） */
@@ -311,7 +336,7 @@ export class SessionRegistry {
           // 注册表主动 dispose 导致的流结束：不合成 failed（不撒谎），仅留痕
           log(`会话 ${record.sid} 事件流在注册表释放后结束（状态 ${record.status}），不合成终态`);
           this.appendJsonl(
-            JSON.stringify({ kind: "session", sid: record.sid, patch: { status: record.status, note: "注册表释放导致事件流结束" } }),
+            JSON.stringify({ kind: "session", sid: record.sid, patch: sessionPatch(record, record.status, "注册表释放导致事件流结束") }),
           );
         } else {
           // 流异常结束但未见终态 → 网关侧合成 failed，绝不让会话悬空

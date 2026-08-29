@@ -6,6 +6,8 @@ export type WriteMode = "direct" | "staged";
 export const DEFAULT_PROPOSALS_FILE = "./audit/proposals.jsonl";
 /** 提案未决过期默认分钟数（proposalCli.ts 共用） */
 export const DEFAULT_PROPOSAL_TTL_MINUTES = 30;
+/** staged 模式分级审批默认清单（逗号分隔字符串；仅列出的写工具仍走提案审批） */
+export const DEFAULT_WRITE_STAGED_TOOLS = "update_ticket_status";
 
 export interface Config {
   agentToken: string;
@@ -14,7 +16,8 @@ export interface Config {
   apiBaseUrl: string;
   serviceToken: string;
   auditFile: string;
-  /** PostgreSQL 连接串（TECHHAVEN_DB_URL）；空串 = 不启用 DB 审计双写，JSONL 审计为主 */
+  /** PostgreSQL 连接串（TECHHAVEN_DB_URL）；空串 = 不接 DB：仅 JSONL 审计 + mock 语义层 + 提案只落 JSONL。
+   *  DB 就绪时审计双写 / 写提案落库 / 语义层 DB Provider 三者同时启用（共用 PgContext） */
   dbUrl: string;
   /** agent 身份在 DB（agent_identities.name）中的名字（TECHHAVEN_AGENT_NAME） */
   agentName: string;
@@ -24,6 +27,9 @@ export interface Config {
   proposalsFile: string;
   /** 提案未决过期分钟数（TECHHAVEN_PROPOSAL_TTL_MINUTES，正整数；过期 = 默认拒绝） */
   proposalTtlMinutes: number;
+  /** staged 模式分级审批清单（TECHHAVEN_WRITE_STAGED_TOOLS，逗号分隔）：
+   *  仅列出的写工具在 staged 模式仍走提案审批，未列入的写工具即使 staged 也直写 */
+  stagedTools: string[];
 }
 
 export class ConfigError extends Error {
@@ -63,6 +69,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 
   const proposalsFile = env.TECHHAVEN_PROPOSALS_FILE?.trim() || DEFAULT_PROPOSALS_FILE;
 
+  // 分级审批清单：逗号分隔的工具名。未设置 = 默认仅 update_ticket_status 走提案；
+  // 显式设为空串 = staged 模式下所有写工具都直写（灰度用），不做报错
+  const stagedTools = (env.TECHHAVEN_WRITE_STAGED_TOOLS ?? DEFAULT_WRITE_STAGED_TOOLS)
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
   // 提案未决时限：正整数分钟；空/非数字/非正整数一律拒绝启动（宁可起不来也不带病跑审批流）
   const ttlRaw = (env.TECHHAVEN_PROPOSAL_TTL_MINUTES ?? String(DEFAULT_PROPOSAL_TTL_MINUTES)).trim();
   const proposalTtlMinutes = Number(ttlRaw);
@@ -84,5 +97,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     writeMode,
     proposalsFile,
     proposalTtlMinutes,
+    stagedTools,
   };
 }

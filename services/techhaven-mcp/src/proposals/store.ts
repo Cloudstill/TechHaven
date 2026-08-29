@@ -7,10 +7,12 @@ import { log } from "../log.js";
  * 写提案事件存储（staged 写模式，TH-RFC-001 §07「事前守护」）。
  *
  * 设计依据：docs/agent-db 的 agent_write_proposals 表（写操作一律「提案暂存 → 人批 → 应用」，
- * 未批准不落库 = 天然可回滚）。这里用 JSONL append-only 事件流做 PoC 存储，而非 PG，原因：
+ * 未批准不落库 = 天然可回滚）。JSONL append-only 事件流是权威存储，原因：
  *   1. mock 域状态在 server 进程内存里，变更必须由 server 进程自己应用，与人工 CLI 之间只能靠文件交接；
- *   2. PoC 阶段不引入 DB 依赖。字段与本文件 ProposalDetail 一一对应，
- *      PG 迁移（agent_write_proposals 表）待 Agent Gateway 上线后进行。
+ *   2. 审批 CLI（proposalCli.ts）与 server 不共享内存，靠同一份文件交接最简单可靠。
+ * P2 起可选 DB 镜像：构造时传入 db sink（见 dbSink.ts → agent_write_proposals 表，
+ * proposal_ref 映射提案字符串 ID），JSONL 落盘成功后 fire-and-forget 同步，DB 失败只记 stderr。
+ * 字段与本文件 ProposalDetail 一一对应。
  *
  * 并发说明：PoC 为单进程 server + 人工 CLI 偶发竞争，可接受——每次读写都重读整个文件
  * 折叠事件，不做文件锁。竞争最坏情况是同一提案收到重复批注事件；折叠采用「状态单调推进」
@@ -90,10 +92,19 @@ function randomSuffix(): string {
   return s;
 }
 
+/**
+ * DB 双写 sink 的最小接口（实现在 dbSink.ts）。内联声明避免本文件静态依赖 pg——
+ * store 会被 CLI / 冒烟测试在无 DB 场景静态引用，pg 只允许在 index.ts 惰性加载。
+ */
+export interface ProposalSinkLike {
+  onEvent(event: ProposalEvent): Promise<void>;
+}
+
 export class ProposalStore {
   constructor(
     private file: string,
     private ttlMinutes: number,
+    private db?: ProposalSinkLike,
   ) {
     mkdirSync(dirname(file), { recursive: true });
   }
@@ -112,7 +123,7 @@ export class ProposalStore {
       id,
       expiresAt: new Date(Date.now() + this.ttlMinutes * 60_000).toISOString(),
     };
-    this.append({
+    this.record({
       event: "created",
       ts: new Date().toISOString(),
       actor: "agent",
@@ -140,7 +151,7 @@ export class ProposalStore {
     if (STATUS_RANK[target] <= STATUS_RANK[state.status]) {
       throw new Error(`提案 ${id} 当前状态为 ${state.status}，不允许追加 ${event} 事件`);
     }
-    this.append({
+    this.record({
       event,
       ts: new Date().toISOString(),
       actor,
@@ -162,7 +173,7 @@ export class ProposalStore {
       // 注意：这里必须直接落盘补记，不能走 appendEvent——它内部会再调 getState，
       // 而此时提案在文件里仍是 pending+超时，会造成无限递归
       try {
-        this.append({
+        this.record({
           event: "expired",
           ts: new Date().toISOString(),
           actor: "system",
@@ -249,5 +260,16 @@ export class ProposalStore {
   private append(event: ProposalEvent): void {
     // 与审计不同：提案写入失败必须向上抛——写入失败意味着提案不存在/批准未留痕，不能假装成功
     appendFileSync(this.file, JSON.stringify(event) + "\n", "utf8");
+  }
+
+  /**
+   * 落盘统一入口：先写 JSONL（权威存储，失败向上抛，见 append），
+   * 成功后 fire-and-forget 镜像到 DB（可选 sink → agent_write_proposals 表）。
+   * DB 失败只记 stderr：镜像不完整时 JSONL 仍可完整回溯，绝不阻塞提案主流程。
+   * created / appendEvent / getState 的过期补记三条写路径都收敛到这里。
+   */
+  private record(event: ProposalEvent): void {
+    this.append(event);
+    this.db?.onEvent(event).catch((err) => log("DB 提案双写失败:", err));
   }
 }

@@ -1,5 +1,5 @@
 -- ============================================================================
--- TechHaven Agent 平面数据层 · Schema v0.1
+-- TechHaven Agent 平面数据层 · Schema v0.2
 -- 依据：TH-RFC-001 §06 的扩展 + 《TDSQL Nexa：面向 Agent 的统一数据平面》理念
 -- 范围：只覆盖「agent 平面」的元数据与治理层；
 --       域数据（requirements/bugs/tasks/users/organizations）仍归产品后端所有，
@@ -139,6 +139,7 @@ CREATE INDEX idx_tool_calls_session  ON agent_tool_calls (session_id);
 
 CREATE TABLE agent_write_proposals (
   id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  proposal_ref TEXT            UNIQUE,              -- techhaven-mcp 提案字符串 ID 与 BIGINT 主键的映射（v0.2）
   session_id   BIGINT          NOT NULL REFERENCES agent_sessions(id),
   org_id       BIGINT          NOT NULL,
   tool_name    TEXT            NOT NULL,
@@ -283,3 +284,10 @@ ORDER BY c.created_at DESC;
 -- agent_write_proposals: 保留 365 天
 -- agent_memory     : 按组织治理，过期字段清理
 -- agent_tokens     : 过期后 30 天清理台账
+
+-- ---------------------------------------------------------------------------
+-- 11. 变更记录
+-- ---------------------------------------------------------------------------
+-- v0.2 (2026-08-29)：agent_write_proposals 增加 proposal_ref TEXT UNIQUE
+--   （techhaven-mcp 提案字符串 ID 与 BIGINT 主键的映射；提案 JSONL 事件流仍为权威存储，DB 为镜像）。
+--   已有库的增量迁移：ALTER TABLE agent_write_proposals ADD COLUMN proposal_ref TEXT UNIQUE;
