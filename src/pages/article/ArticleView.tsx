@@ -2,13 +2,9 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { encodeId } from "@/utils/hashId";
 import ReactMarkdown from "react-markdown";
+import { articleMarkdownComponents, articleMarkdownPlugins } from "@/components/articleView/markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import remarkGfm from "remark-gfm";
-import "katex/dist/katex.min.css";
-import MermaidComponent from "@/components/mermaid/MermaidComponent";
 import CommentNode from "@/components/commentTree/CommentNode";
 import type { ArticleComment } from "@/types/comment";
 import {
@@ -784,71 +780,26 @@ const ArticleView: React.FC<ArticleViewProps> = ({
               </div>
             )}
             <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeKatex]}
-              components={{
-                // 去掉 react-markdown 自动包裹的 <pre>，避免与自定义 codeBlockWrapper 产生双层背景色
-                pre: ({ children }) => <>{children}</>,
-                // 暂时移除自定义 code 组件，使用默认处理
-                // code: CodeBlock,
-                p: ParagraphComponent,
-                h1: createHeadingComponent(1),
-                h2: createHeadingComponent(2),
-                h3: createHeadingComponent(3),
-                h4: createHeadingComponent(4),
-                h5: createHeadingComponent(5),
-                h6: createHeadingComponent(6),
-                // 只对代码块进行自定义处理
-                code: ({ className, children }) => {
-                  const codeContent = String(children || "").replace(/\n$/, "");
-                  const language = className?.replace("language-", "") || "";
-
-                  // 如果没有语言标识，认为是行内代码
-                  if (!className) {
-                    return <code className={styles.inlineCode}>{codeContent}</code>;
-                  }
-
-                  // 如果是 Mermaid 代码，使用 MermaidComponent
-                  if (language === "mermaid") {
-                    return (
-                      <div className={styles.mermaidWrapper}>
-                        <div className={styles.codeHeader}>
-                          <span className={styles.languageTag}>Mermaid 图表</span>
-                          <button className={styles.copyButton} onClick={() => handleCopyCode(codeContent.trim())}>
-                            复制
-                          </button>
-                        </div>
-                        <MermaidComponent code={codeContent.trim()} />
-                      </div>
-                    );
-                  }
-
-                  // 其他语言标识的是块级代码
-                  return (
-                    <div className={styles.codeBlockWrapper}>
-                      <div className={styles.codeHeader}>
-                        <span className={styles.languageTag}>{language}</span>
-                        <button className={styles.copyButton} onClick={() => handleCopyCode(codeContent)}>
-                          复制
-                        </button>
-                      </div>
-                      <SyntaxHighlighter
-                        style={vscDarkPlus}
-                        language={language}
-                        PreTag="div"
-                        showLineNumbers={true}
-                        customStyle={{
-                          margin: 0,
-                          borderRadius: "0 0 8px 8px",
-                          fontSize: "14px",
-                        }}
-                      >
-                        {codeContent}
-                      </SyntaxHighlighter>
-                    </div>
-                  );
-                },
-              }}
+              {...articleMarkdownPlugins}
+              components={articleMarkdownComponents({
+                styles,
+                paragraph: ParagraphComponent,
+                heading: createHeadingComponent,
+                onCopy: handleCopyCode,
+                trimCode: true,
+                unwrapPre: true,
+                renderCode: (code, language) => (
+                  <SyntaxHighlighter
+                    style={vscDarkPlus}
+                    language={language}
+                    PreTag="div"
+                    showLineNumbers
+                    customStyle={{ margin: 0, borderRadius: "0 0 8px 8px", fontSize: "14px" }}
+                  >
+                    {code}
+                  </SyntaxHighlighter>
+                ),
+              })}
               skipHtml={false}
               unwrapDisallowed={false}
             >

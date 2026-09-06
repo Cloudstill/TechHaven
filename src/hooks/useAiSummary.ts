@@ -75,7 +75,7 @@ function useAiSummary(articleId?: string | number) {
     console.log(`${ts()} [AI-SSE] ║ articleId  : ${articleId}`);
     console.log(`${ts()} [AI-SSE] ║ proxy 模式 : ${useProxy}`);
     console.log(`${ts()} [AI-SSE] ║ 路由方式   : ${useProxy ? "Vite proxy → 后端" : "直连后端"}`);
-    console.log(`${ts()} [AI-SSE] ║ 携带 token : ${!!token}${token ? ` (${token.substring(0, 8)}...)` : ""}`);
+    console.log(`${ts()} [AI-SSE] ║ 携带 token : ${!!token}`);
     console.log(`${ts()} [AI-SSE] ║ ⚠️ 如果下面长时间没有响应日志，检查终端里 Vite 的 proxy 日志`);
     console.log(`${ts()} [AI-SSE] ╚══════════════════════════════════════╝`);
 
