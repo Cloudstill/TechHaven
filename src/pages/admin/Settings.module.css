@@ -44,9 +44,7 @@
 }
 
 .headerActions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
+  composes: headerActions from "./AdminPageShared.module.css";
 }
 
 .previewButton {

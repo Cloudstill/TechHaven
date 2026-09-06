@@ -65,12 +65,7 @@
 
 /* 页面头部 */
 .pageHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
+  composes: pageHeader from "./AdminPageShared.module.css";
 }
 
 .pageTitle {
@@ -84,15 +79,11 @@
 }
 
 .pageDescription {
-  color: var(--text-secondary);
-  font-size: 14px;
-  margin-top: 4px;
+  composes: pageDescription from "./AdminPageShared.module.css";
 }
 
 .headerActions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
+  composes: headerActions from "./AdminPageShared.module.css";
 }
 
 /* 统计卡片 */

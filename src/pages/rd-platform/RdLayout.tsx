@@ -351,16 +351,14 @@ const RdLayout: React.FC = () => {
     const breadcrumbs = [{ label: "研发平台", path: "/rd" }];
 
     if (pathSegments.length >= 2) {
-      const currentItem = navSections
-        .flatMap((s) => s.items)
-        .find((item) => {
-          // Match exact paths or create/detail/edit child paths
-          if (location.pathname === item.path) return true;
-          if (location.pathname.startsWith(item.path + "/")) return true;
-          return false;
-        });
+      const navItems = navSections.flatMap((section) => section.items);
+      const currentItem =
+        navItems.find((item) => location.pathname === item.path) ??
+        navItems
+          .filter((item) => item.path !== "/rd" && location.pathname.startsWith(item.path + "/"))
+          .sort((a, b) => b.path.length - a.path.length)[0];
 
-      if (currentItem && location.pathname !== currentItem.path) {
+      if (currentItem && currentItem.path !== "/rd") {
         breadcrumbs.push({ label: currentItem.label, path: currentItem.path });
       }
 

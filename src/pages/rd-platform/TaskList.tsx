@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+import { useRdList } from "@/hooks/useRdList";
+import { useOrgMemberOptions } from "@/hooks/useOrgMemberOptions";
+import React, { useState } from "react";
 import { useRdNavigate } from "@/hooks/useRdNavigate";
 import { formatDateTime } from "@/utils/utils";
 import { encodeId } from "@/utils/hashId";
@@ -67,9 +69,6 @@ const TaskList: React.FC = () => {
   const navigate = useRdNavigate();
   const { user } = useAuth();
   const { isAdmin, userOrgIds, orgs, maxOrgRole, selectedOrgId } = useRdOrg();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState({ search: "", status: "", priority: "", assignee: "" });
 
@@ -77,46 +76,13 @@ const TaskList: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [form, setForm] = useState({ ...emptyTask });
-  const [memberOptions, setMemberOptions] = useState<SelectOption[]>([]);
-
-  const fetchMembers = async (orgId: string) => {
-    if (!orgId) {
-      setMemberOptions([]);
-      return;
-    }
-    try {
-      const members = await RdAPI.getOrgMembers(orgId);
-      setMemberOptions(members.map((m) => ({ id: m.userId, name: m.name, color: "#6c757d", avatar: m.avatar || "" })));
-    } catch {
-      setMemberOptions([]);
-    }
-  };
-
-  useEffect(() => {
-    if (modalVisible && form.organizationId) {
-      fetchMembers(form.organizationId);
-    }
-  }, [modalVisible, form.organizationId]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    const res = await RdAPI.getTasks({
-      search: filters.search,
-      status: filters.status,
-      priority: filters.priority,
-      assignee: filters.assignee,
-      page: currentPage,
-      pageSize: PAGE_SIZE,
-      organizationIds: selectedOrgId ? [selectedOrgId] : undefined,
-    });
-    setTasks(res.data);
-    setTotal(res.total);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [currentPage, filters, selectedOrgId]);
+  const memberOptions = useOrgMemberOptions(modalVisible, form.organizationId);
+  const {
+    data: tasks,
+    total,
+    loading,
+    refresh: fetchData,
+  } = useRdList(RdAPI.getTasks, filters, currentPage, selectedOrgId, PAGE_SIZE);
 
   const handleFilterChange = (field: string, value: string) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
