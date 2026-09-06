@@ -86,11 +86,7 @@ export class CategoryService {
   static async deleteCategory(params: DeleteCategoryParams): Promise<DeleteCategoryResponse> {
     const formData = new URLSearchParams();
     formData.append("ids", params.ids);
-    const response = await http.post<DeleteCategoryResponse>("/category/admin/delete", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<DeleteCategoryResponse>("/category/admin/delete", formData);
     return response.data;
   }
 
@@ -117,11 +113,7 @@ export class CategoryService {
     if (params.parent_id !== undefined && params.parent_id !== null && params.parent_id !== "") {
       formData.append("parent_id", String(params.parent_id));
     }
-    const response = await http.post<CreateCategoryResponse>("/category/admin/create", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<CreateCategoryResponse>("/category/admin/create", formData);
     return response.data;
   }
 }

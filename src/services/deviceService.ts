@@ -43,11 +43,7 @@ export class DeviceService {
   static async kickDevice(deviceId: string): Promise<HttpResponse> {
     const formData = new URLSearchParams();
     formData.append("device_id", deviceId);
-    return http.post("/user/device/kick", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    return http.postForm("/user/device/kick", formData);
   }
 }
 

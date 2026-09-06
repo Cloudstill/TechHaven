@@ -16,7 +16,10 @@ export class MessageService {
   /**
    * 获取单个会话的消息记录
    */
-  static async getMessages(conversationId: number | string, params?: { offset?: number; size?: number }): Promise<MessageListResponse> {
+  static async getMessages(
+    conversationId: number | string,
+    params?: { offset?: number; size?: number },
+  ): Promise<MessageListResponse> {
     const response = await http.get<MessageListResponse>(`/messages/conversations/${conversationId}`, {
       params: { offset: params?.offset ?? 0, size: params?.size ?? 50 },
     });
@@ -27,11 +30,7 @@ export class MessageService {
    * 发送一条消息
    */
   static async send(conversationId: number | string, text: string): Promise<ChatMsg> {
-    const formData = new URLSearchParams();
-    formData.append("text", text);
-    const response = await http.post<ChatMsg>(`/messages/conversations/${conversationId}`, formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    const response = await http.postForm<ChatMsg>(`/messages/conversations/${conversationId}`, { text: text });
     return response.data;
   }
 
@@ -55,11 +54,7 @@ export class MessageService {
    * 发起/获取与某用户的会话（已存在则返回原会话）
    */
   static async createConversation(peerId: number | string): Promise<Conversation> {
-    const formData = new URLSearchParams();
-    formData.append("peer_id", String(peerId));
-    const response = await http.post<Conversation>("/messages/conversations", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    const response = await http.postForm<Conversation>("/messages/conversations", { peer_id: peerId });
     return response.data;
   }
 }

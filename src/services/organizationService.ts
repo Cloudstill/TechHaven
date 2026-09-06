@@ -277,11 +277,7 @@ export class OrganizationService {
       formData.append("desc", params.description);
     }
 
-    const response = await http.post<CreateOrganizationResponse>("/organization/create", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<CreateOrganizationResponse>("/organization/create", formData);
     return response.data;
   }
 
@@ -313,11 +309,7 @@ export class OrganizationService {
     const formData = new URLSearchParams();
     formData.append("ids", params.ids);
 
-    const response = await http.post<DeleteOrganizationResponse>("/organization/delete", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<DeleteOrganizationResponse>("/organization/delete", formData);
     return response.data;
   }
 
@@ -351,11 +343,7 @@ export class OrganizationService {
     const formData = new URLSearchParams();
     formData.append("id", String(params.id));
 
-    const response = await http.post<JoinOrganizationResponse>("/organization/join", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<JoinOrganizationResponse>("/organization/join", formData);
     return response.data;
   }
 
@@ -375,11 +363,7 @@ export class OrganizationService {
       formData.append("role", String(params.role));
     }
 
-    const response = await http.post<organizationJoinCheckResponse>("/organization/join_check", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<organizationJoinCheckResponse>("/organization/join_check", formData);
     return response.data;
   }
 
@@ -399,11 +383,7 @@ export class OrganizationService {
     formData.append("user_id", String(params.user_id));
     formData.append("org_id", String(params.org_id));
 
-    const response = await http.post<organizationKickResponse>("/organization/user_kick", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<organizationKickResponse>("/organization/user_kick", formData);
     return response.data;
   }
 
@@ -417,11 +397,7 @@ export class OrganizationService {
     formData.append("org_id", String(params.org_id));
     formData.append("role", String(params.role));
 
-    const response = await http.post<organizationSetRoleResponse>("/organization/user_switch_role", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<organizationSetRoleResponse>("/organization/user_switch_role", formData);
     return response.data;
   }
 
@@ -436,11 +412,7 @@ export class OrganizationService {
       formData.append("desc", params.description);
     }
 
-    const response = await http.post<ApplyCreateOrganizationResponse>("/organization/apply-create", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<ApplyCreateOrganizationResponse>("/organization/apply-create", formData);
     return response.data;
   }
 
@@ -468,11 +440,7 @@ export class OrganizationService {
       formData.append("reason", params.reason);
     }
 
-    const response = await http.post<ReviewApplyResponse>("/organization/apply-review", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<ReviewApplyResponse>("/organization/apply-review", formData);
     return response.data;
   }
 
@@ -530,9 +498,7 @@ export class OrganizationService {
     if (params.description) formData.append("description", params.description);
     if (params.token) formData.append("token", params.token);
 
-    const response = await http.post<{ id: number | string }>("/organization/repos/add", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    const response = await http.postForm<{ id: number | string }>("/organization/repos/add", formData);
     return response.data;
   }
 
@@ -544,9 +510,7 @@ export class OrganizationService {
     formData.append("id", params.id);
     formData.append("org_id", params.org_id);
 
-    await http.post("/organization/repos/delete", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    await http.postForm("/organization/repos/delete", formData);
   }
 
   /**
@@ -581,9 +545,7 @@ export class OrganizationService {
     const formData = new URLSearchParams();
     formData.append("repo_id", params.repo_id);
     formData.append("token", params.token);
-    await http.post("/organization/repos/token", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    await http.postForm("/organization/repos/token", formData);
   }
 
   /**
@@ -592,9 +554,7 @@ export class OrganizationService {
   static async syncRepo(params: { repo_id: string }): Promise<void> {
     const formData = new URLSearchParams();
     formData.append("repo_id", params.repo_id);
-    await http.post("/organization/repos/sync", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    await http.postForm("/organization/repos/sync", formData);
   }
 
   // ---------------------------------------------------------------------------
@@ -628,9 +588,7 @@ export class OrganizationService {
   static async syncPrs(params: { repo_id: string }): Promise<void> {
     const formData = new URLSearchParams();
     formData.append("repo_id", params.repo_id);
-    await http.post("/organization/repos/prs/sync", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    await http.postForm("/organization/repos/prs/sync", formData);
   }
 
   /**
@@ -639,9 +597,7 @@ export class OrganizationService {
   static async deletePr(params: { id: string }): Promise<void> {
     const formData = new URLSearchParams();
     formData.append("id", params.id);
-    await http.post("/organization/repos/prs/delete", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    await http.postForm("/organization/repos/prs/delete", formData);
   }
 }
 

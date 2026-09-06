@@ -1,6 +1,6 @@
 import Input from "../components/input/Input";
 import { useState } from "react";
-import { SearchOutlined, UserOutlined } from "@ant-design/icons";
+import { FaSearch, FaUser } from "react-icons/fa";
 
 function SampleInput() {
   const [value, setValue] = useState("");
@@ -33,7 +33,7 @@ function SampleInput() {
           value={searchText}
           onChange={(val) => setSearchText(val)}
           onPressEnter={handleSearch}
-          prefix={<SearchOutlined />}
+          prefix={<FaSearch />}
           allowClear
           loading={isLoading}
           size="large"
@@ -41,7 +41,7 @@ function SampleInput() {
         />
 
         {/* 禁用状态 */}
-        <Input placeholder="禁用输入" value="无法修改的内容" disabled prefix={<UserOutlined />} style={{ marginBottom: "16px" }} />
+        <Input placeholder="禁用输入" value="无法修改的内容" disabled prefix={<FaUser />} style={{ marginBottom: "16px" }} />
 
         {/* 不同尺寸 */}
         <Input placeholder="小尺寸" size="small" style={{ marginRight: "8px", width: "120px" }} />

@@ -6,11 +6,7 @@ export class PraiseService {
    * 点赞/取消点赞（toggle）
    */
   static async toggle(articleId: number | string): Promise<PraiseToggleResponse> {
-    const formData = new URLSearchParams();
-    formData.append("article_id", String(articleId));
-    const response = await http.post<PraiseToggleResponse>("/article/praise", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    const response = await http.postForm<PraiseToggleResponse>("/article/praise", { article_id: articleId });
     return response.data;
   }
 

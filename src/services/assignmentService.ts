@@ -191,11 +191,7 @@ export class AssignmentService {
     formData.append("file_type", params.file_type);
     formData.append("description", params.description);
 
-    const response = await http.post<CreateAssignmentResponse>("/assignment/create", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<CreateAssignmentResponse>("/assignment/create", formData);
     return response.data;
   }
 
@@ -219,11 +215,7 @@ export class AssignmentService {
     const formData = new URLSearchParams();
     formData.append("ids", params.ids);
 
-    const response = await http.post<DeleteAssignmentResponse>("/assignment/delete", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<DeleteAssignmentResponse>("/assignment/delete", formData);
     return response.data;
   }
 
@@ -247,11 +239,7 @@ export class AssignmentService {
     formData.append("file_type", params.file_type);
     formData.append("description", params.description);
 
-    const response = await http.post<CreateOrganizationAssignmentResponse>("/organization/assignment_create", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<CreateOrganizationAssignmentResponse>("/organization/assignment_create", formData);
     return response.data;
   }
 

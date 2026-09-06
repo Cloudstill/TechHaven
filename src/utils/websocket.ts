@@ -12,14 +12,20 @@ export interface WsServerError {
 
 type ServerErrorHandler = (err: WsServerError) => void;
 
-/** 从 Cookie 中读取指定 key 的值 */
+/**
+ * 从 Cookie 中读取指定 key 的值。
+ *
+ * 用 indexOf 而非 split("=") 取值：Cookie 值本身允许含 "="（base64 填充、JWT 分段等），
+ * split 会在第一个 "=" 处切断导致 token 被静默截断 —— 表现为「Cookie 明明有值却鉴权失败」。
+ */
 function getCookie(key: string): string | null {
   const cookies = document.cookie.split(";");
   for (const cookie of cookies) {
-    const [name, value] = cookie.trim().split("=");
-    if (name === key) {
-      return decodeURIComponent(value);
-    }
+    const trimmed = cookie.trim();
+    const eq = trimmed.indexOf("=");
+    if (eq < 0) continue;
+    if (trimmed.slice(0, eq) !== key) continue;
+    return decodeURIComponent(trimmed.slice(eq + 1));
   }
   return null;
 }
@@ -97,8 +103,15 @@ export class WebSocketClient {
     if (token) params.set("token", token);
     if (tokenTime) params.set("token_time", tokenTime);
 
+    // token 属于长时凭据：仅用于建连，绝不进入日志/控制台
+    // 注意：当前仍通过 query 传递，是因为后端鉴权依赖该参数；
+    // 迁移到同源 Cookie 或一次性 ticket 需要后端配合，见 docs/ROADMAP.md R0
     const connectUrl = `${this.basePath}?${params.toString()}`;
-    console.log("[WS] 正在连接:", connectUrl, { uid: this.uid, token: token ? "***" : null, tokenTime });
+
+    const logParams = new URLSearchParams(params);
+    if (logParams.has("token")) logParams.set("token", "***");
+    if (logParams.has("token_time")) logParams.set("token_time", "***");
+    console.log("[WS] 正在连接:", `${this.basePath}?${logParams.toString()}`, { uid: this.uid });
 
     this.ws = new WebSocket(connectUrl);
 

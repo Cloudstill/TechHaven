@@ -73,9 +73,7 @@ export class NotificationService {
     if (params.level) formData.append("level", params.level);
     if (params.start_time !== undefined) formData.append("start_time", String(params.start_time));
     if (params.end_time !== undefined) formData.append("end_time", String(params.end_time));
-    await http.post("/notification/send", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    await http.postForm("/notification/send", formData);
   }
 
   /**
@@ -92,9 +90,7 @@ export class NotificationService {
   static async closeBroadcast(id: number): Promise<void> {
     const formData = new URLSearchParams();
     formData.append("id", String(id));
-    await http.post("/broadcast/close", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    await http.postForm("/broadcast/close", formData);
   }
 }
 

@@ -148,6 +148,19 @@ export const clearAuthCookies = (): void => {
 export const tokenManager = new TokenManager();
 
 /**
+ * 未授权（1101）回调注册表
+ *
+ * HTTP 层只负责清理内存 token，登录态（user/token/通知）由 AuthContext 持有。
+ * 这里通过回调把两者解耦，避免 http.ts 反向依赖 AuthContext 造成循环引用。
+ */
+type UnauthorizedHandler = () => void;
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+
+export const setUnauthorizedHandler = (handler: UnauthorizedHandler | null): void => {
+  unauthorizedHandler = handler;
+};
+
+/**
  * 登录请求参数
  */
 export interface LoginParams {
@@ -537,6 +550,8 @@ class HttpClient {
     clearAuthCookies();
     tokenManager.clearToken();
     tokenManager.emitSessionInvalidated(reason);
+    // 同步清理 AuthContext 持有的登录态，避免出现"token 已清但 UI 仍显示已登录"的状态分裂
+    unauthorizedHandler?.();
   }
 
   /**
@@ -553,6 +568,24 @@ class HttpClient {
   async post<T = any>(url: string, data?: any, config?: HttpRequestConfig): Promise<HttpResponse<T>> {
     const response = await this.instance.post<HttpResponse<T>>(url, data, config);
     return response.data;
+  }
+
+  /** Form encoding stays here; callers retain field selection and omission rules. */
+  async postForm<T = any>(
+    url: string,
+    fields: URLSearchParams | Record<string, string | number | boolean | null | undefined>,
+    config?: HttpRequestConfig,
+  ): Promise<HttpResponse<T>> {
+    const body = fields instanceof URLSearchParams ? fields : new URLSearchParams();
+    if (!(fields instanceof URLSearchParams)) {
+      for (const [key, value] of Object.entries(fields)) {
+        if (value !== null && value !== undefined) body.append(key, String(value));
+      }
+    }
+    return this.post<T>(url, body.toString(), {
+      ...config,
+      headers: { ...config?.headers, "Content-Type": "application/x-www-form-urlencoded" },
+    });
   }
 
   /**

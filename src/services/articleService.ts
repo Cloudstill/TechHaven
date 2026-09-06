@@ -304,11 +304,7 @@ export class ArticleService {
     const formData = new URLSearchParams();
     formData.append("id", String(params.id));
     formData.append("publish_time", String(params.publish_time));
-    const response = await http.post<PublishArticleResponse>("/article/publish", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<PublishArticleResponse>("/article/publish", formData);
     return {
       errno: response.errno ?? -1,
       msg: response.message ?? response.msg ?? "",
@@ -329,11 +325,7 @@ export class ArticleService {
   static async viewArticle(articleId: string | number): Promise<{ views: number }> {
     const formData = new URLSearchParams();
     formData.append("article_id", String(articleId));
-    const response = await http.post<{ views: number }>("/article/view", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<{ views: number }>("/article/view", formData);
     return response.data;
   }
 
@@ -348,11 +340,7 @@ export class ArticleService {
     if (params.label) formData.append("label", params.label);
     if (params.category) formData.append("category", params.category);
 
-    const response = await http.post<CreateArticleResponse>("/article/create", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<CreateArticleResponse>("/article/create", formData);
     return response.data;
   }
 
@@ -362,11 +350,7 @@ export class ArticleService {
   static async deleteArticle(params: DeleteArticleParams): Promise<DeleteArticleResponse> {
     const formData = new URLSearchParams();
     formData.append("ids", params.ids);
-    const response = await http.post<DeleteArticleResponse>("/article/delete", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<DeleteArticleResponse>("/article/delete", formData);
     return response.data;
   }
 
@@ -378,11 +362,7 @@ export class ArticleService {
     formData.append("id", String(params.id));
     formData.append("state", String(params.state));
 
-    return http.post("/article/verify", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    return http.postForm("/article/verify", formData);
   }
 
   /**
@@ -397,11 +377,7 @@ export class ArticleService {
     if (params.label) formData.append("label", params.label);
     if (params.category) formData.append("category", params.category);
 
-    return http.post("/article/update", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    return http.postForm("/article/update", formData);
   }
 
   /**
@@ -413,11 +389,7 @@ export class ArticleService {
     formData.append("add_category_ids", params.add_category_ids);
     formData.append("del_category_ids", params.del_category_ids);
 
-    const response = await http.post<UpdateArticleCategoryResponse>("/article/update_category", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<UpdateArticleCategoryResponse>("/article/update_category", formData);
     return response.data;
   }
 
@@ -426,11 +398,7 @@ export class ArticleService {
     formData.append("id", String(params.id));
     formData.append("new_state", String(params.state));
 
-    return http.post("/article/switch_state", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    return http.postForm("/article/switch_state", formData);
   }
 
   /**

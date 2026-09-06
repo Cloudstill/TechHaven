@@ -29,9 +29,7 @@ export class CommentService {
     if (params.parent_id !== undefined) {
       formData.append("parent_id", String(params.parent_id));
     }
-    const response = await http.post<CreateCommentResponse>("/article/comment/create", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    const response = await http.postForm<CreateCommentResponse>("/article/comment/create", formData);
     return response.data;
   }
 
@@ -40,9 +38,7 @@ export class CommentService {
     const formData = new URLSearchParams();
     formData.append("id", String(params.id));
     formData.append("content", params.content);
-    const response = await http.post<CreateCommentResponse>("/article/comment/update", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    const response = await http.postForm<CreateCommentResponse>("/article/comment/update", formData);
     return response.data;
   }
 
@@ -50,18 +46,14 @@ export class CommentService {
   static async delete(id: number | string): Promise<void> {
     const formData = new URLSearchParams();
     formData.append("id", String(id));
-    await http.post("/article/comment/delete", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    await http.postForm("/article/comment/delete", formData);
   }
 
   /** 评论点赞/取消点赞 */
   static async togglePraise(commentId: number | string): Promise<CommentPraiseResponse> {
     const formData = new URLSearchParams();
     formData.append("comment_id", String(commentId));
-    const response = await http.post<CommentPraiseResponse>("/article/comment/praise", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    const response = await http.postForm<CommentPraiseResponse>("/article/comment/praise", formData);
     return response.data;
   }
 
@@ -84,9 +76,7 @@ export class CommentService {
   static async approve(ids: string[]): Promise<BatchOperationResponse> {
     const formData = new URLSearchParams();
     formData.append("ids", ids.join(","));
-    const response = await http.post<BatchOperationResponse>("/admin/comment/approve", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    const response = await http.postForm<BatchOperationResponse>("/admin/comment/approve", formData);
     return response.data;
   }
 
@@ -94,9 +84,7 @@ export class CommentService {
   static async reject(ids: string[]): Promise<BatchOperationResponse> {
     const formData = new URLSearchParams();
     formData.append("ids", ids.join(","));
-    const response = await http.post<BatchOperationResponse>("/admin/comment/reject", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    const response = await http.postForm<BatchOperationResponse>("/admin/comment/reject", formData);
     return response.data;
   }
 
@@ -104,9 +92,7 @@ export class CommentService {
   static async markSpam(ids: string[]): Promise<BatchOperationResponse> {
     const formData = new URLSearchParams();
     formData.append("ids", ids.join(","));
-    const response = await http.post<BatchOperationResponse>("/admin/comment/spam", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    const response = await http.postForm<BatchOperationResponse>("/admin/comment/spam", formData);
     return response.data;
   }
 
@@ -114,9 +100,7 @@ export class CommentService {
   static async batchDelete(ids: string[]): Promise<BatchOperationResponse> {
     const formData = new URLSearchParams();
     formData.append("ids", ids.join(","));
-    const response = await http.post<BatchOperationResponse>("/admin/comment/delete", formData.toString(), {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+    const response = await http.postForm<BatchOperationResponse>("/admin/comment/delete", formData);
     return response.data;
   }
 

@@ -1,56 +1,50 @@
 {
-  "name": "TechHaven",
+  "name": "techhaven",
   "private": true,
   "version": "0.0.0",
   "license": "AGPL-3.0-only",
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:test": "tsc --noEmit && vite build --mode development",
     "preview": "vite preview",
+    "test": "vitest run",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\""
   },
   "dependencies": {
-    "@uiw/react-markdown-preview": "^5.2.1",
-    "antd": "^6.5.0",
     "axios": "^1.18.1",
-    "crypto-js": "^4.2.0",
     "echarts": "^6.1.0",
     "hashids": "^2.3.0",
-    "highlight.js": "^11.11.1",
     "katex": "^0.17.0",
     "lucide-react": "^1.24.0",
-    "markdown-it": "^14.3.0",
     "mermaid": "^11.16.0",
-    "prop-types": "^15.8.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-icons": "^5.7.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.1",
     "react-syntax-highlighter": "^16.1.1",
-    "rehype-highlight": "^7.0.2",
     "rehype-katex": "^7.0.1",
-    "rehype-raw": "^7.0.0",
     "remark": "^15.0.1",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
     "simplebar": "^6.3.3",
-    "simplebar-react": "^3.3.2",
-    "supercons": "^0.2.0",
-    "unist-util-visit": "^5.1.0",
-    "web-vitals": "^5.3.0"
+    "simplebar-react": "^3.3.2"
   },
   "devDependencies": {
-    "@types/crypto-js": "^4.2.2",
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@vitejs/plugin-react": "^6.0.3",
+    "jsdom": "^30.0.1",
     "prettier": "^3.9.5",
     "typescript": "~7.0.2",
-    "vite": "^8.1.4"
+    "vite": "^8.1.4",
+    "vitest": "^4.1.11"
   }
 }

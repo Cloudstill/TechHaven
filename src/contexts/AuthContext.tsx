@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthService } from "../services/authService";
-import { tokenManager, getTokenFromCookie, getCookie, clearAuthCookies } from "../utils/http";
+import { tokenManager, getTokenFromCookie, getCookie, clearAuthCookies, setUnauthorizedHandler } from "../utils/http";
 import { notificationWS, chatWS } from "../utils/websocket";
 import { setFaviconBadge } from "../utils/favicon";
 import { resetNotificationState } from "../utils/notificationState";
@@ -81,6 +81,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     resetNotificationState();
     setFaviconBadge(0);
   }, []);
+
+  // HTTP 1101 与 AuthContext 同步，避免 token 已清但界面仍显示已登录。
+  useEffect(() => {
+    setUnauthorizedHandler(clearAuthRuntimeState);
+    return () => setUnauthorizedHandler(null);
+  }, [clearAuthRuntimeState]);
 
   // 初始化认证状态
   useEffect(() => {

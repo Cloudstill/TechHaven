@@ -43,6 +43,8 @@ interface InputProps {
   required?: boolean;
   name?: string;
   id?: string;
+  /** 原生 autocomplete；密钥类输入应传 "new-password" 避免浏览器密码管理器收藏 */
+  autoComplete?: string;
 }
 
 // 定义通过ref暴露的方法

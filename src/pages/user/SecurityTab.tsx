@@ -69,33 +69,33 @@ const SecurityTab: React.FC = () => {
 
   return (
     <div className={styles.tabWrap}>
-      { import.meta.env.DEV && (
+      {import.meta.env.DEV && (
         <div className={styles.card}>
           <h2 className={styles.cardTitle}>
             <FaShieldAlt /> 安全选项
           </h2>
           <div className={styles.settingRow}>
             <div className={styles.settingInfo}>
-            <p className={styles.settingName}>两步验证（2FA）</p>
-            <p className={styles.settingHint}>登录时需额外输入动态验证码，大幅提升账户安全</p>
+              <p className={styles.settingName}>两步验证（2FA）</p>
+              <p className={styles.settingHint}>登录时需额外输入动态验证码，大幅提升账户安全</p>
+            </div>
+            <Switch
+              checked={twoFactor}
+              onChange={(c) => {
+                setTwoFactor(c);
+                message.info(c ? "已开启两步验证（演示）" : "已关闭两步验证");
+              }}
+            />
           </div>
-          <Switch
-            checked={twoFactor}
-            onChange={(c) => {
-              setTwoFactor(c);
-              message.info(c ? "已开启两步验证（演示）" : "已关闭两步验证");
-            }}
-          />
-        </div>
-        <div className={styles.settingRow}>
-          <div className={styles.settingInfo}>
-            <p className={styles.settingName}>异地登录提醒</p>
-            <p className={styles.settingHint}>检测到新设备或异地登录时通过站内信提醒</p>
+          <div className={styles.settingRow}>
+            <div className={styles.settingInfo}>
+              <p className={styles.settingName}>异地登录提醒</p>
+              <p className={styles.settingHint}>检测到新设备或异地登录时通过站内信提醒</p>
+            </div>
+            <Switch checked={loginAlert} onChange={(c) => setLoginAlert(c)} />
           </div>
-          <Switch checked={loginAlert} onChange={(c) => setLoginAlert(c)} />
         </div>
-      </div>
-	  )}
+      )}
 
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>

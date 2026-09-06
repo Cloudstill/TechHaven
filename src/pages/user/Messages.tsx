@@ -161,7 +161,9 @@ const Messages: React.FC = () => {
       if (!convId || !clientId || !saved) return;
       // 用服务端消息对齐乐观消息（服务端 id 与 create_time）
       setMessages((prev) => prev.map((m) => (String(m.id) === clientId ? saved : m)));
-      setConversations((prev) => prev.map((c) => (String(c.id) === convId ? { ...c, last_time: saved.create_time, messages: [saved] } : c)));
+      setConversations((prev) =>
+        prev.map((c) => (String(c.id) === convId ? { ...c, last_time: saved.create_time, messages: [saved] } : c)),
+      );
     });
 
     const unsubErr = chatWS.onMessage("send_error", (data: any) => {
@@ -269,7 +271,9 @@ const Messages: React.FC = () => {
     try {
       const saved = await MessageService.send(active.id, text);
       setMessages((prev) => prev.map((m) => (m.id === tempMsg.id ? saved : m)));
-      setConversations((prev) => prev.map((c) => (String(c.id) === convId ? { ...c, last_time: saved.create_time, messages: [saved] } : c)));
+      setConversations((prev) =>
+        prev.map((c) => (String(c.id) === convId ? { ...c, last_time: saved.create_time, messages: [saved] } : c)),
+      );
     } catch {
       // 发送失败：移除临时消息，内容回填输入框
       setMessages((prev) => prev.filter((m) => m.id !== tempMsg.id));
@@ -449,7 +453,14 @@ const Messages: React.FC = () => {
               </button>
             </div>
             <div className={msgStyles.modalSearch}>
-              <Input placeholder="搜索互相关注的用户" value={peerSearch} onChange={setPeerSearch} prefix={<FaSearch />} allowClear autoFocus />
+              <Input
+                placeholder="搜索互相关注的用户"
+                value={peerSearch}
+                onChange={setPeerSearch}
+                prefix={<FaSearch />}
+                allowClear
+                autoFocus
+              />
             </div>
             <div className={msgStyles.modalList}>
               {peerLoading ? (

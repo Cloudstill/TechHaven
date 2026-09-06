@@ -137,11 +137,7 @@ export class AuthService {
     formData.append("agent", params.agent);
     formData.append("type", params.type);
 
-    return http.post("/user/send_code", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    return http.postForm("/user/send_code", formData);
   }
 
   /**
@@ -201,11 +197,7 @@ export class AuthService {
     formData.append("passwd", registerParams.passwd);
     formData.append("auth_code", registerParams.auth_code);
 
-    return http.post("/user/create", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    return http.postForm("/user/create", formData);
   }
 
   /**
@@ -268,11 +260,7 @@ export class AuthService {
     formData.append("role", String(params.role));
     formData.append("state", String(params.state));
 
-    return http.post("/user/admin/create", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    return http.postForm("/user/admin/create", formData);
   }
 
   /**
@@ -281,11 +269,7 @@ export class AuthService {
   static async deleteUserAdmin(userId: number | string) {
     const formData = new URLSearchParams();
     formData.append("user_id", String(userId));
-    return http.post("/user/admin/delete", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    return http.postForm("/user/admin/delete", formData);
   }
 
   /**
@@ -363,11 +347,7 @@ export class AuthService {
     if (avatar) formData.append("avatar", avatar);
     if (github !== undefined) formData.append("github", github);
 
-    return http.post("/user/update", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    return http.postForm("/user/update", formData);
   }
 
   /**
@@ -401,11 +381,7 @@ export class AuthService {
     formData.append("passwd", params.passwd);
     formData.append("auth_code", params.auth_code);
 
-    return http.post("/user/forget_passwd", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    return http.postForm("/user/forget_passwd", formData);
   }
 
   /**
@@ -440,17 +416,26 @@ export class AuthService {
 
 export interface AiConfigParams {
   type: "openai" | "claude" | "glm";
+  /** 实际服务商；custom 表示兼容/中转服务 */
+  provider?: "openai" | "anthropic" | "zhipu" | "custom";
+  /** 上游 API 的接口类型 */
+  response_type?: "responses" | "chat_completions" | "messages";
   url: string;
   api_key: string;
   model?: string;
+  /** 推理档位（dsh reasoningEffort），留空用模型默认 */
+  reasoning_effort?: string;
   max_tokens?: number;
 }
 
 export interface AiConfig {
   type: "openai" | "claude" | "glm";
+  provider?: "openai" | "anthropic" | "zhipu" | "custom";
+  response_type?: "responses" | "chat_completions" | "messages";
   url: string;
   api_key: string;
   model: string;
+  reasoning_effort?: string;
   max_tokens: number;
 }
 

@@ -68,11 +68,7 @@ export class LabelService {
   static async deleteLabel(params: DeleteLabelParams): Promise<DeleteLabelResponse> {
     const formData = new URLSearchParams();
     formData.append("ids", params.ids);
-    const response = await http.post<DeleteLabelResponse>("/label/delete", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<DeleteLabelResponse>("/label/delete", formData);
     return response.data;
   }
 
@@ -91,11 +87,7 @@ export class LabelService {
     if (params.description) {
       formData.append("desc", params.description);
     }
-    const response = await http.post<CreateLabelResponse>("/label/create", formData.toString(), {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
+    const response = await http.postForm<CreateLabelResponse>("/label/create", formData);
     return response.data;
   }
 
