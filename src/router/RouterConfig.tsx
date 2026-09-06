@@ -36,6 +36,11 @@ const AssignmentSubmissions = lazy(() => import("../pages/assignment/AssignmentS
 const ChunkUploadTest = lazy(() => import("../pages/test/ChunkUploadTest"));
 const SampleThemeStylePanel = lazy(() => import("../sample/ThemeStylePanel"));
 
+const AgentSessionPanel =
+  import.meta.env.VITE_AGENT_ENABLED === "true" ? lazy(() => import("../pages/rd-platform/AgentSessionPanel")) : null;
+const SampleAgentSessionPanel =
+  import.meta.env.VITE_AGENT_ENABLED === "true" && import.meta.env.DEV ? lazy(() => import("../sample/AgentSessionPanel")) : null;
+
 const RdLayout = lazy(() => import("../pages/rd-platform/RdLayout"));
 const RdDashboard = lazy(() => import("../pages/rd-platform/Dashboard"));
 const RequirementList = lazy(() => import("../pages/rd-platform/RequirementList"));
@@ -128,9 +133,21 @@ const RouterConfig: React.FC = () => {
             }
           />
 
+          {SampleAgentSessionPanel && <Route path="/test/agent-session-panel" element={<SampleAgentSessionPanel />} />}
+
           {/* 研发平台 */}
           <Route path="/rd" element={<RdLayout />}>
             <Route index element={<RdDashboard />} />
+            {AgentSessionPanel && (
+              <Route
+                path="agent"
+                element={
+                  <AuthRequired title="登录后使用 Agent" message="请先登录。">
+                    <AgentSessionPanel />
+                  </AuthRequired>
+                }
+              />
+            )}
 
             <Route path="trends" element={<TrendAnalysis />} />
             <Route path="requirements" element={<RequirementList />} />

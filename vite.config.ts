@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv, type ProxyOptions } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
@@ -6,6 +6,29 @@ import path from "path";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const apiTarget = env.VITE_API_BASE_URL || "http://127.0.0.1:8088";
+
+  const agentProxy: Record<string, ProxyOptions> = env.VITE_AGENT_ENABLED === "true" ? {
+        "^/gateway": {
+          target: env.TECHHAVEN_GATEWAY_URL || "http://127.0.0.1:3091",
+          changeOrigin: true,
+          secure: false,
+          headers: {
+            authorization: `Bearer ${env.TECHHAVEN_GATEWAY_PROXY_TOKEN || ""}`,
+            "x-techhaven-actor": env.TECHHAVEN_GATEWAY_PROXY_ACTOR || "user:1",
+          },
+          rewrite: (requestPath) => requestPath.replace(/^\/gateway/, ""),
+          configure: (proxy) => {
+            proxy.on("error", (err, _req, res) => {
+              console.log(timeStamp(), "网关代理错误:", err.message);
+              // 结束浏览器侧响应，使客户端进入基于 lastSeq 的重连分支。
+              if ("writeHead" in res && !res.headersSent) {
+            res.writeHead(503, { "content-type": "application/json" });
+            res.end(JSON.stringify({ error: "Agent 服务暂时不可用，请稍后重试" }));
+          } else { res.destroy(); }
+            });
+          },
+        }
+  } : {};
 
   const timeStamp = () => {
     const d = new Date();
@@ -32,6 +55,7 @@ export default defineConfig(({ mode }) => {
     server: {
       host: true,
       proxy: {
+        ...agentProxy,
         // SSE 流式端点 — 必须放在通用 /api/v1 规则之前
         "^/api/v1/article/ai-summary": {
           target: apiTarget,

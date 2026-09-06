@@ -31,6 +31,16 @@ jobs:
       - name: Run frontend unit tests
         run: npm test
 
+      - name: Check Agent contract and disabled build boundary
+        run: |
+          npm run check:agent-contract
+          node scripts/check-agent-boundary.mjs
+
+      - name: Build optional Agent UI
+        env:
+          VITE_AGENT_ENABLED: "true"
+        run: npm run build -- --outDir dist-agent
+
       - name: Check bundle size budget
         run: node scripts/check-bundle-size.mjs
 

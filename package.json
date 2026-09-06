@@ -13,7 +13,8 @@
     "build:test": "tsc --noEmit && vite build --mode development",
     "preview": "vite preview",
     "test": "vitest run",
-    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\""
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,scss,md}\"",
+    "check:agent-contract": "node scripts/check-agent-contract.mjs"
   },
   "dependencies": {
     "axios": "^1.18.1",

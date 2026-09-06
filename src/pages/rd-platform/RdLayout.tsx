@@ -1,3 +1,5 @@
+import { AGENT_ENABLED } from "@/config/features";
+import { FaRobot } from "react-icons/fa";
 import React, { useState, useEffect } from "react";
 import { useLocation, Outlet, useSearchParams } from "react-router-dom";
 import { useRdNavigate } from "@/hooks/useRdNavigate";
@@ -249,6 +251,9 @@ const RdLayout: React.FC = () => {
         { id: "reviews", label: "代码审查", icon: <FaCode />, path: "/rd/reviews" },
       ],
     },
+    ...(AGENT_ENABLED
+      ? [{ title: "智能协作", items: [{ id: "agent", label: "Agent 助手", icon: <FaRobot />, path: "/rd/agent" }] }]
+      : []),
     {
       title: "分析洞察",
       items: [{ id: "trends", label: "趋势分析", icon: <FaChartLine />, path: "/rd/trends" }],

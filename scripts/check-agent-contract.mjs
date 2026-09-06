@@ -1,0 +1,11 @@
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const hash = (path) => createHash("sha256").update(readFileSync(path, "utf8").replace(/\r\n/g, "\n")).digest("hex");
+const version = JSON.parse(readFileSync(resolve(root, "src/contracts/agent/version.json"), "utf8"));
+const local = hash(resolve(root, "src/contracts/agent/index.d.ts"));
+if (local !== version.sha256) throw new Error("Frontend contract does not match the pinned checksum");
+if (process.argv[2] && hash(resolve(process.argv[2], "contracts/index.d.ts")) !== local) throw new Error("Agent service contract differs; review both repositories before release");
+console.log(`Agent contract ${version.version}: ${local} OK`);
